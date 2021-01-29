@@ -10,11 +10,6 @@ Original file is located at
 Celem projektu jest przygotowanie metody obcinającej czaszki (skull stripping) na obrazach sekwencji typu T1 rezonansu magnetycznego (MRI) głowy. Metoda powinna z surowego skanu pacjenta wyodrębnić cały obszar zajmowany przez właściwy mózg, pomijając kości, inne tkanki miękkie itp. - ilustracja na rysunku poniżej:
 ![](https://www.researchgate.net/profile/Dario_Pompili/publication/309402865/figure/fig1/AS:420915604148224@1477365508110/Skull-stripping-steps-A-input-images-B-brain-contouring-and-C-removal-of.png)
 
-Poniżej znajduje się przykładowy kod pobierający, rozpakowujący oraz wczytujący dane do macierzy `numpy` o trzech wymiarach. Dodatkowo załączona jest funkcja wizualizująca środkowe slice'y (przekroje) w każdej z trzech osi macierzy.
-
-# Przykładowy kod z opisami
-"""
-
 !pip install --upgrade nibabel
 
 !rm -r FirstDataset
@@ -246,8 +241,7 @@ show_slices([mask_volume[mask_volume.shape[0] // 2], # Środkowy slice 2D w osi 
              mask_volume[:, mask_volume.shape[1] // 2], # Środkowy slice 2D w osi y
              mask_volume[:, :, mask_volume.shape[2] // 2]]) # Środkowy slice 2D w osi z
 
-# raw_volume, affine = load_raw_volume('/content/FirstDataset/test/026719ab1b8e2af45a41ee5b629a12bd.nii.gz')
-# plt.imsave('/content/drive/My Drive/imgzpo/test/testx1.png', raw_volume[raw_volume.shape[0] // 2], cmap="gray")
+
 
 test = plt.imread('/content/drive/My Drive/imgzpo/test/testx1.png')
 test = cv2.resize(test,(256,256)).astype(np.float32)
@@ -278,20 +272,7 @@ for scan_path in first_dataset_path.iterdir():
 
 for scan_path in second_dataset_path.iterdir():
   print(nib.load(str(scan_path / 'T1w.nii.gz')).header.get_zooms())
-
-"""Fizyczne rozmiary wokseli są do siebie podobne - raczej nie musimy nic robić z różnicami rzędu 0.2 - 0.3 mm. Alternatywą byłoby wykorzystanie na przykład funkcji `zoom` z biblioteki `scipy` (uwaga - jest wolna). Obecne tutaj różnice mogą nawet paradoksalnie poprawić generalizację sieci.
-
-Na tym etapie należy podzielić dane (najprawdopodobniej ścieżki do nich po wczytaniu ich listy w Pythonie) na zbiór treningowy i walidacyjny, a następnie wyeksportować podzielone dane do dwuwymiarowych obrazów - najlepiej w bezstratnym formacie PNG.
-
-Sugerowany jest podział na zbiór treningowy i walidacyjny już w wyeksportowanych danych na dysku, ale można go oczywiście realizować podczas wczytywania ścieżek danych do uczenia w kodzie źródłowym. Zachęcamy do eksperymentów, ale zaznaczamy, że zazwyczaj lepiej jest przenosić do zbioru walidacyjnego całe skany, a nie losowe przekroje. Przeniesienie losowych przekrojów powoduje, że sieć jest walidowana na fragmencie skanu, którego inne fragmenty są w zbiorze treningowym - mamy gorszą kontrolę przeuczenia, ale z drugiej strony sieć "widzi" podczas treningu więcej różnych skanów.
-
-Przy eksporcie wymagane będzie przeiterowanie się po obu zbiorach danych, wczytywanie kolejnych skanów do pamięci (jak wyżej, ale z wykorzystaniem załączonych funkcji wczytujących), a następnie eksport danych w wybranej osi. Kopię wyeksportowanych danych warto umieścić na podmontowanym Dysku Google. W sytuacji wygaśnięcia sesji Colaba umożliwi to ich późniejsze przekopiowanie na maszynę docelową bez powtarzania procesu eksportu.
-
-Po wyeksportowaniu danych można wykorzystać podejście znane z instrukcji dotyczącej segmentacji. Można testować różne przekroje danych (ostateczne podejście nie musi wcale być jedną siecią - można nauczyć modele dla każdego przekroju), różne modele sieci neuronowych (w tym z pretreningiem i bez), różne loss functions, różne learning rates, różne augmentacje, różne rodzaje normalizacji danych itd.
-
-Po wytrenowaniu ostatecznego modelu można wygenerować predykcje dla zbioru testowego. Poniżej znajduje się ogólnikowy przykład generowania predykcji.
-"""
-
+  
 predictions_base_path = Path('/content/drive/My Drive/imgzpo/Predictions')
 first_dataset_predictions_path = predictions_base_path / 'first'
 second_dataset_predictions_path = predictions_base_path / 'second'
@@ -325,10 +306,7 @@ for scan_path in first_dataset_test_path.iterdir():
     label = cv2.resize(label, (cut_data.shape[1],cut_data.shape[0])).astype(np.uint8)
     labels[i,:,:] = label
 
-  # Tutaj należy przeiterować się na przykład po jednej z osi, wykonać predykcję dla każdego przekroju i wpisać do macierzy labels
-  # UWAGA - maska powinna zawierać jedynie wartości 0 i 1
-  # UWAGA - predykcje są liczbami zmiennoprzecinkowymi z zakresu 0 do 1 - należy je zbinaryzować wybierając jakiś próg (na przykład 0.5)
-  
+
   save_labels(labels, affine, first_dataset_predictions_path / f'{scan_path.name}')
 
 for scan_path in second_dataset_test_path.iterdir():
@@ -377,4 +355,3 @@ for dataset_predictions_path in (first_dataset_predictions_path, second_dataset_
     else:
         print(f'Error processing prediction {dataset_predictions_path.name}/{prediction_name}: {response.text}')
 
-"""Tak przygotowany katalog `Predictions` należy wgrać do systemu Moodle do oceny."""
